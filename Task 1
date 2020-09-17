@@ -1,1 +1,134 @@
-find_system('brake_acc_nodiv/','regexp','on','BlockType','Gain|Sum|Saturate|RelationalOperator|Switch|MinMax|Abs|UnitDelay')
+//Task1 : Get all Atomic Blocks in the Model
+find_system('brake_acc_nodiv/','regexp','on','BlockType','Gain|Sum|Saturate|RelationalOperator|Switch|MinMax|Abs|UnitDelay|LogicalOperator|Product')
+
+//Task 2 : Get all Subsystems in the Model
+find_system('brake_acc_nodiv/','BlockType','SubSystem')
+
+//Task 3 : Return an array with all unique atomic block types in the model
+namearray =[" "];
+f=Simulink.FindOptions('RegExp',true);
+f2 = Simulink.findBlocksOfType('brake_acc_nodiv/', 'Gain',f);
+if f2~=0
+namearray = namearray + 'Gain';
+end
+f3 = Simulink.findBlocksOfType('brake_acc_nodiv/', 'Sum',f);
+if f3~=0
+namearray = namearray +" " + 'Sum';
+end
+f4 = Simulink.findBlocksOfType('brake_acc_nodiv/', 'Saturate',f);
+if f4~=0
+namearray = namearray +" " + 'Saturate';
+end
+f5 = Simulink.findBlocksOfType('brake_acc_nodiv/', 'RelationalOperator',f);
+if f5~=0
+namearray = namearray +" " + 'Rel Op';
+end
+f6 = Simulink.findBlocksOfType('brake_acc_nodiv/', 'Switch',f);
+if f6~=0
+namearray = namearray +" " + 'Switch';
+end
+f7 = Simulink.findBlocksOfType('brake_acc_nodiv/', 'MinMax',f);
+if f7~=0
+namearray = namearray +" " + 'MinMax';
+end
+f8 = Simulink.findBlocksOfType('brake_acc_nodiv/', 'Abs',f);
+if f8~=0
+namearray = namearray +" " + 'Abs';
+end
+f9 = Simulink.findBlocksOfType('brake_acc_nodiv/', 'UnitDelay',f);
+if f9~=0
+namearray = namearray +" " + 'Delay';
+end
+namearray
+f10 = Simulink.findBlocksOfType('brake_acc_nodiv/', 'LogicalOperator',f);
+if f10~=0
+namearray = namearray +" " + 'LogOP';
+end
+f11 = Simulink.findBlocksOfType('brake_acc_nodiv/', 'Integrator',f);
+if f11~=0
+namearray = namearray +" " + 'Int';
+end
+
+//Task 4a : Rename all signals as ghosts except input and output arguments 
+
+L = find_system('brake_acc_nodiv/ABS_RR_Wheel/If v>=10 km//h','regexp','on','FindAll','on','type','line');
+port = find_system('brake_acc_nodiv/ABS_RR_Wheel/If v>=10 km//h', 'regexp','on','BlockType', 'Inport|Outport');
+portNames = get_param(port, 'Name') %this exp
+
+for k=1 : length(L)
+Src=getfullname(get(L(k),'SrcBlockHandle'))
+Dst=getfullname(get(L(k),'DstBlockHandle'))
+for i = 1 : length(portNames)
+    matchStr1 = regexp(Src, portNames(i), 'match')  ;
+    matchStr2 = regexp(Dst, portNames(i), 'match')  ;
+    matches = find(~cellfun('isempty', matchStr1) | ~cellfun('isempty', matchStr2));
+    if(matches)
+        disp(getfullname(L(k)));
+        newname = [portNames{i}];
+        disp(newname);
+        set_param(L(k),'Name', newname);% always handle
+        break;
+    end
+
+end
+if isempty(matches)
+    newname1 = ['g_' num2str(k)];
+    set_param(L(k),'Name', newname1);
+    disp(newname1);  
+end
+end
+
+//Task 4b: Generate contract for <block> (only gain,sum as of now)
+function newContract = generateContract(block)
+
+fid = fopen('contracts.txt');
+tline = fgetl(fid);
+h = find_system('brake_acc_nodiv/ABS_RR_Wheel/If v>=10 km//h','regexp','on','BlockType','Gain|Sum');
+for i = 1 : length(h)
+    name = get_param(h(i),'Name');
+    type = get_param(h(i), 'BlockType');
+    if strcmp(name, block)
+        while ischar(tline)
+            if strfind(lower(tline),lower(type))
+                break;
+            end
+            tline = fgetl(fid);
+        end
+        contract = fgetl(fid);
+        disp(contract);
+    end
+end
+fclose(fid);
+
+%h = find_system('brake_acc_nodiv/ABS_RR_Wheel/If v>=10 km//h','regexp','on','BlockType','Gain|Sum');
+for i = 1 : length(h)
+    name = get_param(h(i),'Name');
+    if strcmp(name, block)
+        type = get_param(h(i), 'BlockType');
+        switch type{1}
+            case 'Gain'
+                p = get_param(getfullname(h{i}),'PortHandles');
+                out = get_param(p.Outport,'Name');
+                in = get_param(p.Inport, 'Name');
+                gain_param = get_param(h(i),'Gain');
+                
+       
+                newContract = strrep(strrep(strrep(contract, 'gain_constant', gain_param), 'output', out), 'input_signal', in);
+                disp(newContract);
+        
+            case 'Sum'
+                
+                p = get_param(getfullname(h{i}),'PortHandles');
+                out = get_param(p.Outport,'Name');
+                in1 = get_param(p.Inport(1), 'Name');
+                in2= get_param(p.Inport(2), 'Name');
+               
+
+                newContract = strrep(strrep(strrep(contract, 'input_signal1', in1), 'input_signal2', in2), 'output', out);
+                disp(newContract);
+        end
+    end
+end
+
+end
+

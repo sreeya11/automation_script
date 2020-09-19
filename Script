@@ -78,15 +78,20 @@ if isempty(matches)
 end
 end
 
-//Task 4b: Generate contract for <block> (only gain,sum as of now)
+//Task 4b: Generate contract for <block> (only gain,sum as of now) and inject contract in .c file location
 function newContract = generateContract(block)
 
+%% function def
+function newContract = generateContract(block,subs)
 fid = fopen('contracts.txt');
 tline = fgetl(fid);
-h = find_system('brake_acc_nodiv/ABS_RR_Wheel/If v>=10 km//h','regexp','on','BlockType','Gain|Sum');
+%h = find_system('brake_acc_nodiv/ABS_RR_Wheel/If v>=10 km//h','regexp','on','BlockType','Gain|Sum');
+h = find_system(subs,'regexp','on','BlockType','Gain|Sum');
 for i = 1 : length(h)
     name = get_param(h(i),'Name');
+    disp(name);
     type = get_param(h(i), 'BlockType');
+    disp(type);
     if strcmp(name, block)
         while ischar(tline)
             if strfind(lower(tline),lower(type))
@@ -100,7 +105,23 @@ for i = 1 : length(h)
 end
 fclose(fid);
 
+%% search thru .h file and match line in h file with subsystem path and return subsys number (now .txt)
+fid = fopen('mock_h_file.txt');
+tline = fgetl(fid);
+while ischar(tline)
+    if contains(tline,subs) %string subs is a part of tline
+        disp(tline);
+        break;
+    end
+    tline = fgetl(fid);
+end
+subsID = extractBetween(tline, "* '", "' :");
+fclose(fid);
 %h = find_system('brake_acc_nodiv/ABS_RR_Wheel/If v>=10 km//h','regexp','on','BlockType','Gain|Sum');
+%% get actual contract and subsID/name and inject it there
+%f = fopen('mockc.txt');
+sl = {'/'};
+%tline = fgetl(f);
 for i = 1 : length(h)
     name = get_param(h(i),'Name');
     if strcmp(name, block)
@@ -111,8 +132,8 @@ for i = 1 : length(h)
                 out = get_param(p.Outport,'Name');
                 in = get_param(p.Inport, 'Name');
                 gain_param = get_param(h(i),'Gain');
-                
-       
+               
+        
                 newContract = strrep(strrep(strrep(contract, 'gain_constant', gain_param), 'output', out), 'input_signal', in);
                 disp(newContract);
         
@@ -127,8 +148,32 @@ for i = 1 : length(h)
                 newContract = strrep(strrep(strrep(contract, 'input_signal1', in1), 'input_signal2', in2), 'output', out);
                 disp(newContract);
         end
+        blockid =strcat(subsID{1}, sl{1}, name{1});
+        disp(blockid);
+        f = fopen('mockc.txt');
+        line = fgetl(f);
+        disp(line);
+        while ischar(line)
+            disp(line);
+            if contains(line,blockid)
+                %here = fgetl(f);
+                %fw = fopen('mockc.txt', 'w');
+                fs = fopen('mockc.txt', 'a'); %can only append within loop
+                fprintf(fs,'\n\n%s\n',newContract);
+                disp('done'); %inject contract here or next line
+                fclose(fs);
+                break
+            end
+            line = fgetl(f);
+        end
     end
 end
+fclose(f);
 
 end
+
+
+
+
+
 

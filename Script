@@ -1,8 +1,8 @@
 //Task1 : Get all Atomic Blocks in the Model
 find_system('brake_acc_nodiv/','regexp','on','BlockType','Gain|Sum|Saturate|RelationalOperator|Switch|MinMax|Abs|UnitDelay|LogicalOperator|Product')
 
-//Task 2 : Get all Subsystems in the Model
-find_system('brake_acc_nodiv/','BlockType','SubSystem')
+//Task 2 : Get all Subsystems in the Model (all subsys including statecharts)
+find_system('brake_acc_nodiv/','FollowLinks', 'on', 'LookUnderMasks', 'all','LookUnderReadProtectedSubsystems','on','BlockType','SubSystem')
 
 //Task 3 : Return an array with all unique atomic block types in the model
 namearray =[" "];

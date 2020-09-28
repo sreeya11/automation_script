@@ -172,8 +172,44 @@ fclose(f);
 
 end
 
+//Task 5 : get depth of the model and return all subsystems at that depth
 
+function m = giveSubsystemsatLevel(depth)
 
+        
+        k=find_system('brake_acc_nodiv/','SearchDepth',depth,'FollowLinks', 'on', 'LookUnderMasks', 'all','LookUnderReadProtectedSubsystems','on','BlockType','SubSystem');
+        l = find_system('brake_acc_nodiv/','SearchDepth',(depth+1),'FollowLinks', 'on', 'LookUnderMasks', 'all','LookUnderReadProtectedSubsystems','on','BlockType','SubSystem');
+        m = setdiff(l,k);
 
+    txt = sprintf('Subsystems at level %d\n',depth);
+    disp(txt);
+    
+end
+
+%% get depth of the model
+metric_engine = slmetric.Engine();
+setAnalysisRoot(metric_engine,'Root','brake_acc_nodiv');
+
+res_col = getMetrics(metric_engine,{'mathworks.metrics.SubSystemDepth'}); %does not return statecharts
+cnt = 1;
+a=[];
+for n=1:length(res_col)
+    if res_col(n).Status == 0
+        results = res_col(n).Results;
+        
+        for m=1:length(results)
+            disp(['  Value: ',num2str(results(m).Value)]);
+            a(cnt) = results(m).Value;
+            cnt = cnt + 1;
+        end
+    end
+end
+depth = max(a);
+disp(depth);
+%% return subsystems at each level
+for i = 0: (depth) %skipped statcharts on level3
+    m = giveSubsystemsatLevel(i);
+    disp(m);
+end
 
 

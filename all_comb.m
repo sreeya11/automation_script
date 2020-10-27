@@ -240,7 +240,7 @@ for i = (depth):-1: 0 %skipped statcharts on level3
             
             fclose(fid);
             sl = {'/'};
-            %% generate contract (no function post conditions as yet)
+            %% generate contract 
             if ismember(sub_name, {'Veh_Speed_Estimator'}) & ismember(type, 'Sum')
                     newContract = generateContract(type,all_blocks{b},contract);
                     p = get_param(getfullname(all_blocks{b}),'PortHandles');
@@ -433,7 +433,7 @@ for i = (depth):-1: 0 %skipped statcharts on level3
     end
     end
 
-
+%% write to annotated .c file
 fid = fopen( 'C:\Users\Diya\Documents\MATLAB\BBW\brake_acc_nodiv_ert_rtw\brake_acc_nodiv-annotated9.c', 'w' );
 for jj = 1:length(cac{1})
     fprintf( fid, '%s\n', cac{1}{jj} );
